@@ -15,7 +15,7 @@ cairocffi==1.6.1
     # via cairosvg
 cairosvg==2.7.0
     # via mkdocs-ansible
-certifi==2024.2.2
+certifi==2024.7.4
     # via requests
 cffi==1.16.0
     # via cairocffi
@@ -93,7 +93,7 @@ mkdocs==1.5.3
     #   mkdocs-monorepo-plugin
     #   mkdocstrings
 mkdocs-ansible==24.2.1
-    # via -r docs/requirements.in
+    # via -r requirements.in
 mkdocs-autorefs==0.5.0
     # via mkdocstrings
 mkdocs-gen-files==0.5.0
