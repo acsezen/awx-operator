@@ -93,7 +93,7 @@ mkdocs==1.5.3
     #   mkdocs-monorepo-plugin
     #   mkdocstrings
 mkdocs-ansible==24.2.1
-    # via -r docs/requirements.in
+    # via -r requirements.in
 mkdocs-autorefs==0.5.0
     # via mkdocstrings
 mkdocs-gen-files==0.5.0
@@ -122,7 +122,7 @@ paginate==0.5.6
     # via mkdocs-material
 pathspec==0.12.1
     # via mkdocs
-pillow==10.0.1
+pillow==10.3.0
     # via
     #   cairosvg
     #   mkdocs-ansible
