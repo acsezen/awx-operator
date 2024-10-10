@@ -17,6 +17,12 @@ This role assumes you are authenticated with an Openshift or Kubernetes cluster:
   - AWX is deployed to via the operator
   - An AWX backup is available on a PVC in your cluster (see the backup [README.md](../backup/README.md))
 
+*Before Restoring from a backup*, be sure to:
+  - delete the old existing AWX CR
+  - delete the persistent volume claim (PVC) for the database from the old deployment, which has a name like `postgres-<postgres version>-<deployment-name>-postgres-<postgres version>-0`
+
+**Note**: Do not delete the namespace/project, as that will delete the backup and the backup's PVC as well.
+
 
 Usage
 ----------------
@@ -33,12 +39,11 @@ metadata:
 spec:
   deployment_name: mytower
   backup_name: awxbackup-2021-04-22
-  backup_pvc_namespace: 'old-awx-namespace'
 ```
 
-Note that the `deployment_name` above is the name of the AWX deployment you intend to create and restore to.  
+Note that the `deployment_name` above is the name of the AWX deployment you intend to create and restore to.
 
-The namespace specified is the namespace the resulting AWX deployment will be in.  The namespace you specified must be pre-created.  
+The namespace specified is the namespace the resulting AWX deployment will be in.  The namespace you specified must be pre-created.
 
 ```
 kubectl create ns my-namespace
@@ -58,7 +63,7 @@ This will create a new deployment and restore your backup to it.
 Role Variables
 --------------
 
-The name of the backup directory can be found as a status on your AWXBackup object.  This can be found in your cluster's console, or with the client as shown below.  
+The name of the backup directory can be found as a status on your AWXBackup object.  This can be found in your cluster's console, or with the client as shown below.
 
 ```bash
 $ kubectl get awxbackup awxbackup1 -o jsonpath="{.items[0].status.backupDirectory}"
@@ -70,7 +75,7 @@ backup_dir: '/backups/tower-openshift-backup-2021-04-02-03:25:08'
 ```
 
 
-The name of the PVC can also be found by looking at the backup object.  
+The name of the PVC can also be found by looking at the backup object.
 
 ```bash
 $ kubectl get awxbackup awxbackup1 -o jsonpath="{.items[0].status.backupClaim}"
@@ -81,11 +86,7 @@ awx-backup-volume-claim
 backup_pvc: 'awx-backup-volume-claim'
 ```
 
-By default, the backup pvc will be created in the same namespace the awxbackup object is created in. This namespace must be specified using the `backup_pvc_namespace` variable.
-
-```
-backup_pvc_namespace: 'custom-namespace'
-```
+The backup pvc will be created in the same namespace the awxbackup object is created in.
 
 If a custom postgres configuration secret was used when deploying AWX, it must be set:
 
@@ -100,6 +101,23 @@ backup_pvc: myoldtower-backup-claim
 backup_dir: /backups/tower-openshift-backup-2021-04-02-03:25:08
 ```
 
+Variable to define Pull policy.You can pass other options like `Always`, `always`, `Never`, `never`, `IfNotPresent`, `ifnotpresent`.
+
+```
+image_pull_policy: 'IfNotPresent'
+```
+
+Variable to define resources limits and request for restore CR.
+
+```
+restore_resource_requirements:
+  limits:
+    cpu: "1000m"
+    memory: "4096Mi"
+  requests:
+    cpu: "25m"
+    memory: "32Mi"
+```
 
 Testing
 ----------------

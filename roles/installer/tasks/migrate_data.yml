@@ -11,26 +11,22 @@
     awx_old_postgres_database: "{{ old_pg_config['resources'][0]['data']['database'] | b64decode }}"
     awx_old_postgres_port: "{{ old_pg_config['resources'][0]['data']['port'] | b64decode }}"
     awx_old_postgres_host: "{{ old_pg_config['resources'][0]['data']['host'] | b64decode }}"
-  no_log: true
+  no_log: "{{ no_log }}"
 
-- name: Default label selector to custom resource generated postgres
+- name: Set Default label selector for custom resource generated postgres
   set_fact:
-    postgres_label_selector: "app.kubernetes.io/instance=postgres-{{ meta.name }}"
+    postgres_label_selector: "app.kubernetes.io/instance=postgres-{{ supported_pg_version }}-{{ ansible_operator_meta.name }}"
   when: postgres_label_selector is not defined
 
 - name: Get the postgres pod information
   k8s_info:
     kind: Pod
-    namespace: '{{ meta.namespace }}'
-    name: '{{ meta.name }}-postgres-0'  # using name to keep compatibility
+    namespace: "{{ ansible_operator_meta.namespace }}"
+    label_selectors:
+      - "{{ postgres_label_selector }}"
     field_selectors:
       - status.phase=Running
   register: postgres_pod
-  until:
-    - "postgres_pod['resources'] | length"
-    - "postgres_pod['resources'][0]['status']['phase'] == 'Running'"
-  delay: 5
-  retries: 60
 
 - name: Set the resource pod name as a variable.
   set_fact:
@@ -48,7 +44,7 @@
       -d {{ awx_old_postgres_database }}
       -p {{ awx_old_postgres_port }}
       -F custom
-  no_log: true
+  no_log: "{{ no_log }}"
 
 - name: Set pg_restore command
   set_fact:
@@ -56,21 +52,36 @@
       pg_restore --clean --if-exists
       -U {{ database_username }}
       -d {{ database_name }}
-  no_log: true
+  no_log: "{{ no_log }}"
 
 - name: Stream backup from pg_dump to the new postgresql container
   k8s_exec:
-    namespace: "{{ meta.namespace }}"
+    namespace: "{{ ansible_operator_meta.namespace }}"
     pod: "{{ postgres_pod_name }}"
     command: |
-      bash -c """
+      bash -c "
+      function end_keepalive {
+        rc=$?
+        rm -f \"$1\"
+        kill $(cat /proc/$2/task/$2/children 2>/dev/null) 2>/dev/null || true
+        wait $2 || true
+        exit $rc
+      }
+      keepalive_file=\"$(mktemp)\"
+      while [[ -f \"$keepalive_file\" ]]; do
+        echo 'Migrating data from old database...'
+        sleep 60
+      done &
+      keepalive_pid=$!
+      trap 'end_keepalive \"$keepalive_file\" \"$keepalive_pid\"' EXIT SIGINT SIGTERM
+      echo keepalive_pid: $keepalive_pid
       set -e -o pipefail
-      PGPASSWORD={{ awx_old_postgres_pass }} {{ pgdump }} | PGPASSWORD={{ awx_postgres_pass }} {{ pg_restore }}
+      PGPASSWORD=\"$PGPASSWORD_OLD\" {{ pgdump }} | PGPASSWORD=\"$POSTGRES_PASSWORD\" {{ pg_restore }}
+      set +e +o pipefail
       echo 'Successful'
-      """
-  no_log: true
+      "
+  no_log: "{{ no_log }}"
   register: data_migration
-  failed_when: "'Successful' not in data_migration.stdout"
 
 - name: Set flag signifying that this instance has been migrated
   set_fact:

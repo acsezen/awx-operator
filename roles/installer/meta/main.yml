@@ -25,7 +25,8 @@ galaxy_info:
     - cd
     - deployment
 
-dependencies: []
+dependencies:
+  - role: common
 
 collections:
   - kubernetes.core
