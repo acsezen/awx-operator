@@ -93,7 +93,7 @@ mkdocs==1.5.3
     #   mkdocs-monorepo-plugin
     #   mkdocstrings
 mkdocs-ansible==24.2.1
-    # via -r docs/requirements.in
+    # via -r requirements.in
 mkdocs-autorefs==0.5.0
     # via mkdocstrings
 mkdocs-gen-files==0.5.0
@@ -174,7 +174,7 @@ tinycss2==1.2.1
     # via
     #   cairosvg
     #   cssselect2
-urllib3==2.2.1
+urllib3==2.2.2
     # via requests
 watchdog==4.0.0
     # via mkdocs
